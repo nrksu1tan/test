@@ -235,3 +235,34 @@ result = playfairCipher(text, key, false);
                         if (encrypt) {
                             result += matrix[(posA.row + 1) % 6][posA.col];
                             result += matrix[(posB.row + 1) % 6][posB.col];
+
+> XRD:
+} else {
+                            result += matrix[(posA.row + 5) % 6][posA.col];
+                            result += matrix[(posB.row + 5) % 6][posB.col];
+                        }
+                    } else {
+                        // Прямоугольник
+                        result += matrix[posA.row][posB.col];
+                        result += matrix[posB.row][posA.col];
+                    }
+                } else {
+                    result += a + b;
+                }
+            }
+            return result;
+        }
+
+        function findPosition(matrix, char) {
+            for (let row = 0; row < matrix.length; row++) {
+                for (let col = 0; col < matrix[row].length; col++) {
+                    if (matrix[row][col] === char) {
+                        return { row, col };
+                    }
+                }
+            }
+            return null;
+        }
+    </script>
+</body>
+</html>
