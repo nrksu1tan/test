@@ -1,3 +1,4 @@
+> XRD:
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -60,7 +61,7 @@
             <option value="playfair">Шифр Плейфера</option>
         </select>
 
-        <label for="key">Введите ключ (для Плейфера и Трисемуса - слово без повторяющихся букв):</label>
+        <label for="key">Введите ключ (для Плейфера - слово без повторяющихся букв):</label>
         <input type="text" id="key">
 
         <label for="plaintext">Введите текст для шифрования:</label>
@@ -81,7 +82,7 @@
             <option value="playfair">Шифр Плейфера</option>
         </select>
 
-        <label for="dkey">Введите ключ (для Плейфера и Трисемуса - слово без повторяющихся букв):</label>
+        <label for="dkey">Введите ключ (для Плейфера - слово без повторяющихся букв):</label>
         <input type="text" id="dkey">
 
         <label for="dciphertext">Введите текст для декодирования:</label>
@@ -103,7 +104,7 @@
             if (method === 'gronsfeld') {
                 result = gronsfeldCipher(text, key, true);
             } else if (method === 'trithemius') {
-                result = trithemiusCipher(text, key, true);
+                result = trithemiusCipher(text, true);
             } else if (method === 'playfair') {
                 result = playfairCipher(text, key, true);
             }
@@ -120,9 +121,11 @@
             if (method === 'gronsfeld') {
                 result = gronsfeldCipher(text, key, false);
             } else if (method === 'trithemius') {
-                result = trithemiusCipher(text, key, false);
+                result = trithemiusCipher(text, false);
             } else if (method === 'playfair') {
-                result = playfairCipher(text, key, false);
+
+> XRD:
+result = playfairCipher(text, key, false);
             }
 
             document.getElementById('dplaintext').value = result;
@@ -130,25 +133,18 @@
 
         // Шифр Гронсфельда
         function gronsfeldCipher(text, key, encrypt = true) {
-            const alphabet = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';
-            const textUpper = text.toUpperCase().replace(/Ё/g, 'Е').replace(/Й/g, 'И');
-            const keyNums = key.replace(/\D/g, '').split('').map(Number);
-            const fullKey = [];
-
-            for (let i = 0; i < textUpper.length; i++) {
-                fullKey.push(keyNums[i % keyNums.length]);
-            }
-
+            const alphabet = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';
+            const fullKey = key.repeat(Math.ceil(text.length / key.length));
             let result = '';
 
-            for (let i = 0; i < textUpper.length; i++) {
-                const letter = textUpper[i];
+            for (let i = 0; i < text.length; i++) {
+                const letter = text[i].toUpperCase();
                 const index = alphabet.indexOf(letter);
 
                 if (index !== -1) {
-                    let shift = fullKey[i];
-                    if (!encrypt) shift = -shift;
-                    let newIndex = (index + shift + alphabet.length) % alphabet.length;
+                    const shift = parseInt(fullKey[i % fullKey.length]);
+                    let newIndex = encrypt ? index + shift : index - shift;
+                    newIndex = (newIndex + alphabet.length) % alphabet.length;
                     result += alphabet[newIndex];
                 } else {
                     result += letter;
@@ -157,62 +153,44 @@
             return result;
         }
 
-        // Шифр Трисемуса
-        function trithemiusCipher(text, key, encrypt = true) {
-            const alphabet = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';
-            key = key.toUpperCase().replace(/[^А-Я]/g, '').replace(/Ё/g, 'Е').replace(/Й/g, 'И');
-            let keyUnique = '';
-
-            for (let char of key) {
-                if (!keyUnique.includes(char)) {
-                    keyUnique += char;
-                }
-            }
-
-            for (let char of alphabet) {
-                if (!keyUnique.includes(char)) {
-                    keyUnique += char;
-                }
-            }
-
+        // Шифр Трисемуса (Тритемиуса)
+        function trithemiusCipher(text, encrypt = true) {
+            const alphabet = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';
             let result = '';
-            const textUpper = text.toUpperCase().replace(/Ё/g, 'Е').replace(/Й/g, 'И');
+            let shift = 0;
 
-            for (let char of textUpper) {
-                const index = keyUnique.indexOf(char);
+            for (let i = 0; i < text.length; i++) {
+                const letter = text[i].toUpperCase();
+                const index = alphabet.indexOf(letter);
 
                 if (index !== -1) {
-                    let newIndex;
-                    if (encrypt) {
-                        newIndex = (index + 1) % keyUnique.length;
-                    } else {
-                        newIndex = (index - 1 + keyUnique.length) % keyUnique.length;
-                    }
-                    result += keyUnique[newIndex];
+                    let newIndex = encrypt ? index + shift : index - shift;
+                    newIndex = (newIndex + alphabet.length) % alphabet.length;
+                    result += alphabet[newIndex];
+                    shift++;
                 } else {
-                    result += char;
+                    result += letter;
                 }
             }
-
             return result;
         }
 
         // Шифр Плейфера
         function playfairCipher(text, key, encrypt = true) {
-            const alphabet = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';
-            key = key.toUpperCase().replace(/[^А-Я]/g, '').replace(/Ё/g, 'Е').replace(/Й/g, 'И');
+            const alphabet = 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЫЬЭЮЯ'; // Удалены Ё и Ъ
+            key = key.toUpperCase().replace(/Ё|Ъ/g, '');
+            let matrixKey = '';
 
             // Убираем повторяющиеся буквы из ключа
-            let matrixKey = '';
             for (let char of key) {
-                if (!matrixKey.includes(char) && alphabet.includes(char)) {
+                if (matrixKey.indexOf(char) === -1 && alphabet.indexOf(char) !== -1) {
                     matrixKey += char;
                 }
             }
 
             // Добавляем остальные буквы
             for (let char of alphabet) {
-                if (!matrixKey.includes(char)) {
+                if (matrixKey.indexOf(char) === -1) {
                     matrixKey += char;
                 }
             }
@@ -224,28 +202,20 @@
             }
 
             // Подготовка текста
-            let preparedText = text.toUpperCase().replace(/[^А-Я]/g, '').replace(/Ё/g, 'Е').replace(/Й/g, 'И');
-            let finalText = '';
-            for (let i = 0; i < preparedText.length; i += 2) {
-                let a = preparedText[i];
-                let b = preparedText[i + 1];
-
-                if (!b) {
-                    b = 'Ъ'; // Заполняем последнюю биграмму
-                }
-
-                if (a === b) {
-                    b = 'Ъ';
-                    i--;
-                }
-
-                finalText += a + b;
+            text = text.toUpperCase().replace(/Ё|Ъ/g, '').replace(/\s/g, '');
+            if (text.length % 2 !== 0) {
+                text += 'Ь';
             }
 
             let result = '';
-            for (let i = 0; i < finalText.length; i += 2) {
-                let a = finalText[i];
-                let b = finalText[i + 1];
+            for (let i = 0; i < text.length; i += 2) {
+                let a = text[i];
+                let b = text[i + 1];
+
+                if (a === b) {
+                    b = 'Ь';
+                    i--;
+                }
 
                 let posA = findPosition(matrix, a);
                 let posB = findPosition(matrix, b);
@@ -265,32 +235,3 @@
                         if (encrypt) {
                             result += matrix[(posA.row + 1) % 6][posA.col];
                             result += matrix[(posB.row + 1) % 6][posB.col];
-                        } else {
-                            result += matrix[(posA.row + 5) % 6][posA.col];
-                            result += matrix[(posB.row + 5) % 6][posB.col];
-                        }
-                    } else {
-                        // Прямоугольник
-                        result += matrix[posA.row][posB.col];
-                        result += matrix[posB.row][posA.col];
-                    }
-                } else {
-                    result += a + b;
-                }
-            }
-            return result;
-        }
-
-        function findPosition(matrix, char) {
-            for (let row = 0; row < matrix.length; row++) {
-                for (let col = 0; col < matrix[row].length; col++) {
-                    if (matrix[row][col] === char) {
-                        return { row, col };
-                    }
-                }
-            }
-            return null;
-        }
-    </script>
-</body>
-</html>
