@@ -1,73 +1,148 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Шифратор текста</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 50px;
-        }
-        .container {
-            max-width: 600px;
-            margin: auto;
-        }
-        textarea {
-            width: 100%;
-            height: 100px;
-        }
-        select, button {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-        }
-        pre {
-            background-color: #f0f0f0;
-            padding: 10px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Преобразователь текста в двоичный код</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    textarea { width: 100%; height: 100px; }
+    select, button { margin-top: 10px; }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h2>Шифратор текста</h2>
-        <textarea id="inputText" placeholder="Введите текст"></textarea>
-        <select id="encoding">
-            <option value="none">Без кодировки</option>
-            <option value="windows-1251">Windows 1251</option>
-            <option value="koi8-r">КОИ-8R</option>
-            <option value="cp866">cp866</option>
-        </select>
-        <button onclick="encodeText()">Зашифровать</button>
-        <h3>Результат:</h3>
-        <pre id="outputText"></pre>
-    </div>
 
-    <script>
-        function encodeText() {
-            const text = document.getElementById('inputText').value;
-            const encoding = document.getElementById('encoding').value;
-            let encoded = '';
+<h2>Преобразователь текста в двоичный код</h2>
 
-            try {
-                if (encoding === 'none') {
-                    encoded = text.split('').map(char => {
-                        return char.charCodeAt(0).toString(2).padStart(8, '0');
-                    }).join(' ');
-                } else {
-                    const encoder = new TextEncoder(encoding);
-                    const encodedBytes = encoder.encode(text);
-                    encoded = Array.from(encodedBytes).map(byte => {
-                        return byte.toString(2).padStart(8, '0');
-                    }).join(' ');
-                }
-                document.getElementById('outputText').textContent = encoded;
-            } catch (error) {
-                document.getElementById('outputText').textContent = Ошибка: ${error.message};
-            }
+<label for="inputText">Введите текст:</label><br>
+<textarea id="inputText"></textarea><br>
+
+<label for="encoding">Выберите кодировку:</label><br>
+<select id="encoding">
+    <option value="no_encoding">Без кодировки</option>
+    <option value="baudot">Код Бодо (МТК-2)</option>
+    <option value="koi8r">КОИ-8R</option>
+    <option value="cp866">cp866</option>
+    <option value="windows1251">Windows 1251</option>
+</select><br>
+
+<button onclick="convertText()">Преобразовать</button>
+
+<h3>Результат в двоичном виде:</h3>
+<textarea id="outputText" readonly></textarea>
+
+<script>
+// Таблицы кодировок
+const encodingTables = {
+    'koi8r': {
+        // Unicode в KOI8-R
+        'А': 0xE1, 'Б': 0xE2, 'В': 0xF7, 'Г': 0xE7, 'Д': 0xE4, 'Е': 0xE5,
+        'Ё': 0xB3, 'Ж': 0xF6, 'З': 0xFA, 'И': 0xE9, 'Й': 0xEA, 'К': 0xEB,
+        'Л': 0xEC, 'М': 0xED, 'Н': 0xEE, 'О': 0xEF, 'П': 0xF0, 'Р': 0xF2,
+        'С': 0xF3, 'Т': 0xF4, 'У': 0xF5, 'Ф': 0xE6, 'Х': 0xE8, 'Ц': 0xE3,
+        'Ч': 0xFE, 'Ш': 0xFB, 'Щ': 0xFD, 'Ъ': 0xFF, 'Ы': 0xF9, 'Ь': 0xF8,
+        'Э': 0xFC, 'Ю': 0xE0, 'Я': 0xF1,
+        'а': 0xC1, 'б': 0xC2, 'в': 0xD7, 'г': 0xC7, 'д': 0xC4, 'е': 0xC5,
+        'ё': 0xA3, 'ж': 0xD6, 'з': 0xDA, 'и': 0xC9, 'й': 0xCA, 'к': 0xCB,
+        'л': 0xCC, 'м': 0xCD, 'н': 0xCE, 'о': 0xCF, 'п': 0xD0, 'р': 0xD2,
+        'с': 0xD3, 'т': 0xD4, 'у': 0xD5, 'ф': 0xC6, 'х': 0xC8, 'ц': 0xC3,
+        'ч': 0xDE, 'ш': 0xDB, 'щ': 0xDD, 'ъ': 0xDF, 'ы': 0xD9, 'ь': 0xD8,
+        'э': 0xDC, 'ю': 0xC0, 'я': 0xD1,
+    },
+    'cp866': {
+        // Unicode в CP866
+        'А': 0x80, 'Б': 0x81, 'В': 0x82, 'Г': 0x83, 'Д': 0x84, 'Е': 0x85,
+        'Ё': 0xF0, 'Ж': 0x86, 'З': 0x87, 'И': 0x88, 'Й': 0x89, 'К': 0x8A,
+        'Л': 0x8B, 'М': 0x8C, 'Н': 0x8D, 'О': 0x8E, 'П': 0x8F, 'Р': 0x90,
+        'С': 0x91, 'Т': 0x92, 'У': 0x93, 'Ф': 0x94, 'Х': 0x95, 'Ц': 0x96,
+        'Ч': 0x97, 'Ш': 0x98, 'Щ': 0x99, 'Ъ': 0x9A, 'Ы': 0x9B, 'Ь': 0x9C,
+        'Э': 0x9D, 'Ю': 0x9E, 'Я': 0x9F,
+        'а': 0xA0, 'б': 0xA1, 'в': 0xA2, 'г': 0xA3, 'д': 0xA4, 'е': 0xA5,
+        'ё': 0xF1, 'ж': 0xA6, 'з': 0xA7, 'и': 0xA8, 'й': 0xA9, 'к': 0xAA,
+        'л': 0xAB, 'м': 0xAC, 'н': 0xAD, 'о': 0xAE, 'п': 0xAF, 'р': 0xE0,
+        'с': 0xE1, 'т': 0xE2, 'у': 0xE3, 'ф': 0xE4, 'х': 0xE5, 'ц': 0xE6,
+        'ч': 0xE7, 'ш': 0xE8, 'щ': 0xE9, 'ъ': 0xEA, 'ы': 0xEB, 'ь': 0xEC,
+        'э': 0xED, 'ю': 0xEE, 'я': 0xEF,
+    },
+    'windows1251': {
+        // Unicode в Windows-1251
+        'А': 0xC0, 'Б': 0xC1, 'В': 0xC2, 'Г': 0xC3, 'Д': 0xC4, 'Е': 0xC5,
+        'Ё': 0xA8, 'Ж': 0xC6, 'З': 0xC7, 'И': 0xC8, 'Й': 0xC9, 'К': 0xCA,
+        'Л': 0xCB, 'М': 0xCC, 'Н': 0xCD, 'О': 0xCE, 'П': 0xCF, 'Р': 0xD0,
+        'С': 0xD1, 'Т': 0xD2, 'У': 0xD3, 'Ф': 0xD4, 'Х': 0xD5, 'Ц': 0xD6,
+        'Ч': 0xD7, 'Ш': 0xD8, 'Щ': 0xD9, 'Ъ': 0xDA, 'Ы': 0xDB, 'Ь': 0xDC,
+        'Э': 0xDD, 'Ю': 0xDE, 'Я': 0xDF,
+        'а': 0xE0, 'б': 0xE1, 'в': 0xE2, 'г': 0xE3, 'д': 0xE4, 'е': 0xE5,
+        'ё': 0xB8, 'ж': 0xE6, 'з': 0xE7, 'и': 0xE8, 'й': 0xE9, 'к': 0xEA,
+        'л': 0xEB, 'м': 0xEC, 'н': 0xED, 'о': 0xEE, 'п': 0xEF, 'р': 0xF0,
+        'с': 0xF1, 'т': 0xF2, 'у': 0xF3, 'ф': 0xF4, 'х': 0xF5, 'ц': 0xF6,
+        'ч': 0xF7, 'ш': 0xF8, 'щ': 0xF9, 'ъ': 0xFA, 'ы': 0xFB, 'ь': 0xFC,
+        'э': 0xFD, 'ю': 0xFE, 'я': 0xFF,
+    }
+};
+
+function convertText() {
+    const text = document.getElementById('inputText').value;
+    const encoding = document.getElementById('encoding').value;
+    const outputText = document.getElementById('outputText');
+    outputText.value = '';
+
+    if (encoding === 'no_encoding') {
+        // Используем кодовые точки Unicode
+        const binaryOutput = text.split('').map(c => {
+            return c.codePointAt(0).toString(2).padStart(16, '0');
+        }).join(' ');
+        outputText.
+        value = binaryOutput;
+    } else if (encoding === 'baudot') {
+        const binaryOutput = convertBaudot(text);
+        outputText.value = binaryOutput;
+    } else {
+        const binaryOutput = convertWithEncoding(text, encoding);
+        outputText.value = binaryOutput;
+    }
+}
+
+function convertBaudot(text) {
+    const baudotCode = {
+        'А': '00011', 'Б': '11001', 'В': '01110', 'Г': '01011',
+        'Д': '11000', 'Е': '00001', 'Ж': '11110', 'З': '10010',
+        'И': '10011', 'Й': '11101', 'К': '01101', 'Л': '00100',
+        'М': '10100', 'Н': '10101', 'О': '00101', 'П': '11100',
+        'Р': '01111', 'С': '11010', 'Т': '10110', 'У': '01010',
+        'Ф': '01100', 'Х': '01001', 'Ц': '10111', 'Ч': '10001',
+        'Ш': '00110', 'Щ': '10000', 'Ъ': '00010', 'Ы': '01000',
+        'Ь': '11011', 'Э': '00111', 'Ю': '11111', 'Я': '01110',
+        ' ': '00000'
+    };
+    let binaryOutput = '';
+    for (let c of text.toUpperCase()) {
+        const code = baudotCode[c];
+        if (code) {
+            binaryOutput += code + ' ';
+        } else {
+            binaryOutput += '????? ';
         }
-    </script>
+    }
+    return binaryOutput.trim();
+}
+
+function convertWithEncoding(text, encoding) {
+    const table = encodingTables[encoding];
+    const bytes = [];
+    for (let c of text) {
+        const byte = table[c];
+        if (byte !== undefined) {
+            bytes.push(byte);
+        } else {
+            bytes.push('?'.charCodeAt(0)); // Используем '?' для неизвестных символов
+        }
+    }
+    const binaryOutput = bytes.map(b => {
+        return b.toString(2).padStart(8, '0');
+    }).join(' ');
+    return binaryOutput;
+}
+</script>
+
 </body>
 </html>
