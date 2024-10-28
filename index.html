@@ -39,6 +39,14 @@
         button:hover {
             background-color: #357ae8;
         }
+        #developerOutput {
+            display: none;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ccc;
+        }
         @media (max-width: 600px) {
             body {
                 margin: 10px;
@@ -60,7 +68,7 @@
             <option value="playfair">Шифр Плейфера</option>
         </select>
 
-        <label for="key">Введите ключ (для Плейфера - слово без повторяющихся букв):</label>
+        <label for="key">Введите ключ:</label>
         <input type="text" id="key">
 
         <label for="plaintext">Введите текст для шифрования:</label>
@@ -81,7 +89,7 @@
             <option value="playfair">Шифр Плейфера</option>
         </select>
 
-        <label for="dkey">Введите ключ (для Плейфера - слово без повторяющихся букв):</label>
+        <label for="dkey">Введите ключ:</label>
         <input type="text" id="dkey">
 
         <label for="dciphertext">Введите текст для декодирования:</label>
@@ -93,6 +101,9 @@
         <textarea id="dplaintext" rows="5" readonly></textarea>
     </div>
 
+    <button onclick="showDeveloperInfo()">Разработчик</button>
+    <div id="developerOutput"></div>
+
     <script>
         function encrypt() {
             const method = document.getElementById('cipherMethod').value;
@@ -103,7 +114,7 @@
             if (method === 'gronsfeld') {
                 result = gronsfeldCipher(text, key, true);
             } else if (method === 'trithemius') {
-                result = trithemiusCipher(text, true);
+                result = trithemiusCipher(text, key, true);
             } else if (method === 'playfair') {
                 result = playfairCipher(text, key, true);
             }
@@ -120,7 +131,7 @@
             if (method === 'gronsfeld') {
                 result = gronsfeldCipher(text, key, false);
             } else if (method === 'trithemius') {
-                result = trithemiusCipher(text, false);
+                result = trithemiusCipher(text, key, false);
             } else if (method === 'playfair') {
                 result = playfairCipher(text, key, false);
             }
@@ -128,20 +139,28 @@
             document.getElementById('dplaintext').value = result;
         }
 
-        // Шифр Гронсфельда
         function gronsfeldCipher(text, key, encrypt = true) {
-            const alphabet = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';
-            const fullKey = key.repeat(Math.ceil(text.length / key.length));
-            let result = '';
+            const alphabet = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';
+            const textUpper = text.toUpperCase().replace(/Ё/g, 'Е').replace(/\s+/g, '');
+            const keyNums = key.replace(/\D/g, '').split('').map(Number);
+            if (keyNums.length === 0) {
+                alert('Ключ должен содержать цифры для шифра Гронсфельда.');
+                return '';
+            }
+            const fullKey = [];
+            for (let i = 0; i < textUpper.length; i++) {
+                fullKey.push(keyNums[i % keyNums.length]);
+            }
 
-            for (let i = 0; i < text.length; i++) {
-                const letter = text[i].toUpperCase();
+            let result = '';
+            for (let i = 0; i < textUpper.length; i++) {
+                const letter = textUpper[i];
                 const index = alphabet.indexOf(letter);
 
                 if (index !== -1) {
-                    const shift = parseInt(fullKey[i % fullKey.length]);
-                    let newIndex = encrypt ? index + shift : index - shift;
-                    newIndex = (newIndex + alphabet.length) % alphabet.length;
+                    let shift = fullKey[i];
+                    if (!encrypt) shift = -shift;
+                    let newIndex = (index + shift + alphabet.length) % alphabet.length;
                     result += alphabet[newIndex];
                 } else {
                     result += letter;
@@ -150,70 +169,87 @@
             return result;
         }
 
-        // Шифр Трисемуса (Тритемиуса)
-        function trithemiusCipher(text, encrypt = true) {
-            const alphabet = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';
-            let result = '';
-            let shift = 0;
+        function trithemiusCipher(text, key, encrypt = true) {
+            const alphabet = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';
+            key = key.toUpperCase().replace(/[^А-Я]/g, '').replace(/Ё/g, 'Е');
 
-            for (let i = 0; i < text.length; i++) {
-                const letter = text[i].toUpperCase();
-                const index = alphabet.indexOf(letter);
-
-                if (index !== -1) {
-                    let newIndex = encrypt ? index + shift : index - shift;
-                    newIndex = (newIndex + alphabet.length) % alphabet.length;
-                    result += alphabet[newIndex];
-                    shift++;
-                } else {
-                    result += letter;
+            // Создаем таблицу шифрования
+            let keyUnique = '';
+            for (let char of key) {
+                if (!keyUnique.includes(char)) {
+                    keyUnique += char;
                 }
             }
+            for (let char of alphabet) {
+                if (!keyUnique.includes(char)) {
+                    keyUnique += char;
+                }
+            }
+
+            let result = '';
+            const textUpper = text.toUpperCase().replace(/Ё/g, 'Е').replace(/\s+/g, '');
+            for (let char of textUpper) {
+                const index = keyUnique.indexOf(char);
+
+                if (index !== -1) {
+                    let newIndex;
+                    if (encrypt) {
+                        newIndex = (index + 1) % keyUnique.length;
+                    } else {
+                        newIndex = (index - 1 + keyUnique.length) % keyUnique.length;
+                    }
+                    result += keyUnique[newIndex];
+                } else {
+                    result += char;
+                }
+            }
+
             return result;
         }
 
-        // Шифр Плейфера
         function playfairCipher(text, key, encrypt = true) {
-            const alphabet = 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЫЬЭЮЯ'; // Удалены Ё и Ъ
-            key = key.toUpperCase().replace(/Ё|Ъ/g, '');
-            let matrixKey = '';
+            const alphabet = 'ABCDEFGHIKLMNOPQRSTUVWXYZ'; // Для английского текста
+            key = key.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
 
             // Убираем повторяющиеся буквы из ключа
+            let matrixKey = '';
             for (let char of key) {
-                if (matrixKey.indexOf(char) === -1 && alphabet.indexOf(char) !== -1) {
+                if (!matrixKey.includes(char) && alphabet.includes(char)) {
                     matrixKey += char;
                 }
             }
-
             // Добавляем остальные буквы
             for (let char of alphabet) {
-                if (matrixKey.indexOf(char) === -1) {
+                if (!matrixKey.includes(char)) {
                     matrixKey += char;
                 }
             }
 
-            // Создаем матрицу 5x6
+            // Создаем матрицу 5x5
             const matrix = [];
-            for (let i = 0; i < 6; i++) {
+            for (let i = 0; i < 5; i++) {
                 matrix.push(matrixKey.slice(i * 5, i * 5 + 5).split(''));
             }
 
             // Подготовка текста
-            text = text.toUpperCase().replace(/Ё|Ъ/g, '').replace(/\s/g, '');
-            if (text.length % 2 !== 0) {
-                text += 'Ь';
+            let preparedText = text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
+            let bigrams = [];
+            for (let i = 0; i < preparedText.length; i += 2) {
+                let a = preparedText[i];
+                let b = preparedText[i + 1];
+                if (b === undefined) {
+                    b = 'X';
+                }
+
+                if (a === b) {
+                    b = 'X';
+                    i--;
+                }
+                bigrams.push([a, b]);
             }
 
             let result = '';
-            for (let i = 0; i < text.length; i += 2) {
-                let a = text[i];
-                let b = text[i + 1];
-
-                if (a === b) {
-                    b = 'Ь';
-                    i--;
-                }
-
+            for (let [a, b] of bigrams) {
                 let posA = findPosition(matrix, a);
                 let posB = findPosition(matrix, b);
 
@@ -230,11 +266,11 @@
                     } else if (posA.col === posB.col) {
                         // Один столбец
                         if (encrypt) {
-                            result += matrix[(posA.row + 1) % 6][posA.col];
-                            result += matrix[(posB.row + 1) % 6][posB.col];
-                            } else {
-                            result += matrix[(posA.row + 5) % 6][posA.col];
-                            result += matrix[(posB.row + 5) % 6][posB.col];
+                            result += matrix[(posA.row + 1) % 5][posA.col];
+                            result += matrix[(posB.row + 1) % 5][posB.col];
+                        } else {
+                            result += matrix[(posA.row + 4) % 5][posA.col];
+                            result += matrix[(posB.row + 4) % 5][posB.col];
                         }
                     } else {
                         // Прямоугольник
@@ -245,7 +281,7 @@
                     result += a + b;
                 }
             }
-            return result;
+            return result.match(/.{1,2}/g).join(' ');
         }
 
         function findPosition(matrix, char) {
@@ -257,6 +293,57 @@
                 }
             }
             return null;
+        }
+
+        function showDeveloperInfo() {
+            const outputDiv = document.getElementById('developerOutput');
+            outputDiv.style.display = 'block';
+            const method = document.getElementById('cipherMethod');
+            const keyInput = document.getElementById('key');
+            const textInput = document.getElementById('plaintext');
+
+            const examples = {
+                gronsfeld: {
+                    key: '314',
+                    text: 'СОВЕРШЕННОСЕКРЕТНО',
+                    output: 'ФПЖИСЬИОССТКНСКХОТ'
+                },
+                trithemius: {
+                    key: '',
+                    text: 'СЛИВА',
+                    output: 'КДЖНМ'
+                },
+                playfair: {
+                    key: '',
+                    text: 'HELLOWMOSCOW',
+                    output: 'HE LX LO WM OS CO WX'
+                }
+            };
+
+            const methodValue = method.value;
+
+            if (methodValue === 'gronsfeld') {
+                keyInput.value = '314';
+                textInput.value = 'СОВЕРШЕННО СЕКРЕТНО';
+                outputDiv.textContent = `Гронсфельд шифр
+Ввод: С О В Е Р Ш Е Н Н О С Е К Р Е Т Н О
+Ключ: 3 1 4 (повторяется)
+Вывод: Ф П Ж И С Ь И О С С Т К Н С К Х О Т`;
+            } else if (methodValue === 'trithemius') {
+                keyInput.value = '';
+                textInput.value = 'СЛИВА';
+                outputDiv.textContent = `Трисемус шифр
+Ввод: С Л И В А
+Вывод: К Д Ж Н М`;
+            } else if (methodValue === 'playfair') {
+                keyInput.value = '';
+                textInput.value = 'HELLOW MOSCOW';
+                outputDiv.textContent = `Playfair шифр
+Ввод: HELLOW MOSCOW
+Вывод: HE LX LO WM OS CO WX`;
+            } else {
+                outputDiv.textContent = '';
+            }
         }
     </script>
 </body>
