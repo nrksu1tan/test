@@ -1,148 +1,263 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<title>Преобразователь текста в двоичный код</title>
-<style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    textarea { width: 100%; height: 100px; }
-    select, button { margin-top: 10px; }
-</style>
+    <meta charset="UTF-8">
+    <title>Шифрование и Декодирование</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        textarea, select, input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #357ae8;
+        }
+        @media (max-width: 600px) {
+            body {
+                margin: 10px;
+            }
+            button {
+                padding: 10px;
+                font-size: 14px;
+            }
+        }
+    </style>
 </head>
 <body>
+    <h1>Шифрование текста</h1>
+    <div class="section">
+        <label for="cipherMethod">Выберите метод шифрования:</label>
+        <select id="cipherMethod">
+            <option value="gronsfeld">Шифр Гронсфельда</option>
+            <option value="trithemius">Шифр Трисемуса</option>
+            <option value="playfair">Шифр Плейфера</option>
+        </select>
 
-<h2>Преобразователь текста в двоичный код</h2>
+        <label for="key">Введите ключ (для Плейфера - слово без повторяющихся букв):</label>
+        <input type="text" id="key">
 
-<label for="inputText">Введите текст:</label><br>
-<textarea id="inputText"></textarea><br>
+        <label for="plaintext">Введите текст для шифрования:</label>
+        <textarea id="plaintext" rows="5"></textarea>
 
-<label for="encoding">Выберите кодировку:</label><br>
-<select id="encoding">
-    <option value="no_encoding">Без кодировки</option>
-    <option value="baudot">Код Бодо (МТК-2)</option>
-    <option value="koi8r">КОИ-8R</option>
-    <option value="cp866">cp866</option>
-    <option value="windows1251">Windows 1251</option>
-</select><br>
+        <button onclick="encrypt()">Зашифровать</button>
 
-<button onclick="convertText()">Преобразовать</button>
+        <h2>Зашифрованный текст:</h2>
+        <textarea id="ciphertext" rows="5" readonly></textarea>
+    </div>
 
-<h3>Результат в двоичном виде:</h3>
-<textarea id="outputText" readonly></textarea>
+    <h1>Декодирование текста</h1>
+    <div class="section">
+        <label for="decipherMethod">Выберите метод декодирования:</label>
+        <select id="decipherMethod">
+            <option value="gronsfeld">Шифр Гронсфельда</option>
+            <option value="trithemius">Шифр Трисемуса</option>
+            <option value="playfair">Шифр Плейфера</option>
+        </select>
 
-<script>
-// Таблицы кодировок
-const encodingTables = {
-    'koi8r': {
-        // Unicode в KOI8-R
-        'А': 0xE1, 'Б': 0xE2, 'В': 0xF7, 'Г': 0xE7, 'Д': 0xE4, 'Е': 0xE5,
-        'Ё': 0xB3, 'Ж': 0xF6, 'З': 0xFA, 'И': 0xE9, 'Й': 0xEA, 'К': 0xEB,
-        'Л': 0xEC, 'М': 0xED, 'Н': 0xEE, 'О': 0xEF, 'П': 0xF0, 'Р': 0xF2,
-        'С': 0xF3, 'Т': 0xF4, 'У': 0xF5, 'Ф': 0xE6, 'Х': 0xE8, 'Ц': 0xE3,
-        'Ч': 0xFE, 'Ш': 0xFB, 'Щ': 0xFD, 'Ъ': 0xFF, 'Ы': 0xF9, 'Ь': 0xF8,
-        'Э': 0xFC, 'Ю': 0xE0, 'Я': 0xF1,
-        'а': 0xC1, 'б': 0xC2, 'в': 0xD7, 'г': 0xC7, 'д': 0xC4, 'е': 0xC5,
-        'ё': 0xA3, 'ж': 0xD6, 'з': 0xDA, 'и': 0xC9, 'й': 0xCA, 'к': 0xCB,
-        'л': 0xCC, 'м': 0xCD, 'н': 0xCE, 'о': 0xCF, 'п': 0xD0, 'р': 0xD2,
-        'с': 0xD3, 'т': 0xD4, 'у': 0xD5, 'ф': 0xC6, 'х': 0xC8, 'ц': 0xC3,
-        'ч': 0xDE, 'ш': 0xDB, 'щ': 0xDD, 'ъ': 0xDF, 'ы': 0xD9, 'ь': 0xD8,
-        'э': 0xDC, 'ю': 0xC0, 'я': 0xD1,
-    },
-    'cp866': {
-        // Unicode в CP866
-        'А': 0x80, 'Б': 0x81, 'В': 0x82, 'Г': 0x83, 'Д': 0x84, 'Е': 0x85,
-        'Ё': 0xF0, 'Ж': 0x86, 'З': 0x87, 'И': 0x88, 'Й': 0x89, 'К': 0x8A,
-        'Л': 0x8B, 'М': 0x8C, 'Н': 0x8D, 'О': 0x8E, 'П': 0x8F, 'Р': 0x90,
-        'С': 0x91, 'Т': 0x92, 'У': 0x93, 'Ф': 0x94, 'Х': 0x95, 'Ц': 0x96,
-        'Ч': 0x97, 'Ш': 0x98, 'Щ': 0x99, 'Ъ': 0x9A, 'Ы': 0x9B, 'Ь': 0x9C,
-        'Э': 0x9D, 'Ю': 0x9E, 'Я': 0x9F,
-        'а': 0xA0, 'б': 0xA1, 'в': 0xA2, 'г': 0xA3, 'д': 0xA4, 'е': 0xA5,
-        'ё': 0xF1, 'ж': 0xA6, 'з': 0xA7, 'и': 0xA8, 'й': 0xA9, 'к': 0xAA,
-        'л': 0xAB, 'м': 0xAC, 'н': 0xAD, 'о': 0xAE, 'п': 0xAF, 'р': 0xE0,
-        'с': 0xE1, 'т': 0xE2, 'у': 0xE3, 'ф': 0xE4, 'х': 0xE5, 'ц': 0xE6,
-        'ч': 0xE7, 'ш': 0xE8, 'щ': 0xE9, 'ъ': 0xEA, 'ы': 0xEB, 'ь': 0xEC,
-        'э': 0xED, 'ю': 0xEE, 'я': 0xEF,
-    },
-    'windows1251': {
-        // Unicode в Windows-1251
-        'А': 0xC0, 'Б': 0xC1, 'В': 0xC2, 'Г': 0xC3, 'Д': 0xC4, 'Е': 0xC5,
-        'Ё': 0xA8, 'Ж': 0xC6, 'З': 0xC7, 'И': 0xC8, 'Й': 0xC9, 'К': 0xCA,
-        'Л': 0xCB, 'М': 0xCC, 'Н': 0xCD, 'О': 0xCE, 'П': 0xCF, 'Р': 0xD0,
-        'С': 0xD1, 'Т': 0xD2, 'У': 0xD3, 'Ф': 0xD4, 'Х': 0xD5, 'Ц': 0xD6,
-        'Ч': 0xD7, 'Ш': 0xD8, 'Щ': 0xD9, 'Ъ': 0xDA, 'Ы': 0xDB, 'Ь': 0xDC,
-        'Э': 0xDD, 'Ю': 0xDE, 'Я': 0xDF,
-        'а': 0xE0, 'б': 0xE1, 'в': 0xE2, 'г': 0xE3, 'д': 0xE4, 'е': 0xE5,
-        'ё': 0xB8, 'ж': 0xE6, 'з': 0xE7, 'и': 0xE8, 'й': 0xE9, 'к': 0xEA,
-        'л': 0xEB, 'м': 0xEC, 'н': 0xED, 'о': 0xEE, 'п': 0xEF, 'р': 0xF0,
-        'с': 0xF1, 'т': 0xF2, 'у': 0xF3, 'ф': 0xF4, 'х': 0xF5, 'ц': 0xF6,
-        'ч': 0xF7, 'ш': 0xF8, 'щ': 0xF9, 'ъ': 0xFA, 'ы': 0xFB, 'ь': 0xFC,
-        'э': 0xFD, 'ю': 0xFE, 'я': 0xFF,
-    }
-};
+        <label for="dkey">Введите ключ (для Плейфера - слово без повторяющихся букв):</label>
+        <input type="text" id="dkey">
 
-function convertText() {
-    const text = document.getElementById('inputText').value;
-    const encoding = document.getElementById('encoding').value;
-    const outputText = document.getElementById('outputText');
-    outputText.value = '';
+        <label for="dciphertext">Введите текст для декодирования:</label>
+        <textarea id="dciphertext" rows="5"></textarea>
 
-    if (encoding === 'no_encoding') {
-        // Используем кодовые точки Unicode
-        const binaryOutput = text.split('').map(c => {
-            return c.codePointAt(0).toString(2).padStart(16, '0');
-        }).join(' ');
-        outputText.
-        value = binaryOutput;
-    } else if (encoding === 'baudot') {
-        const binaryOutput = convertBaudot(text);
-        outputText.value = binaryOutput;
-    } else {
-        const binaryOutput = convertWithEncoding(text, encoding);
-        outputText.value = binaryOutput;
-    }
-}
+        <button onclick="decrypt()">Декодировать</button>
 
-function convertBaudot(text) {
-    const baudotCode = {
-        'А': '00011', 'Б': '11001', 'В': '01110', 'Г': '01011',
-        'Д': '11000', 'Е': '00001', 'Ж': '11110', 'З': '10010',
-        'И': '10011', 'Й': '11101', 'К': '01101', 'Л': '00100',
-        'М': '10100', 'Н': '10101', 'О': '00101', 'П': '11100',
-        'Р': '01111', 'С': '11010', 'Т': '10110', 'У': '01010',
-        'Ф': '01100', 'Х': '01001', 'Ц': '10111', 'Ч': '10001',
-        'Ш': '00110', 'Щ': '10000', 'Ъ': '00010', 'Ы': '01000',
-        'Ь': '11011', 'Э': '00111', 'Ю': '11111', 'Я': '01110',
-        ' ': '00000'
-    };
-    let binaryOutput = '';
-    for (let c of text.toUpperCase()) {
-        const code = baudotCode[c];
-        if (code) {
-            binaryOutput += code + ' ';
-        } else {
-            binaryOutput += '????? ';
+        <h2>Декодированный текст:</h2>
+        <textarea id="dplaintext" rows="5" readonly></textarea>
+    </div>
+
+    <script>
+        function encrypt() {
+            const method = document.getElementById('cipherMethod').value;
+            const key = document.getElementById('key').value;
+            const text = document.getElementById('plaintext').value;
+            let result = '';
+
+            if (method === 'gronsfeld') {
+                result = gronsfeldCipher(text, key, true);
+            } else if (method === 'trithemius') {
+                result = trithemiusCipher(text, true);
+            } else if (method === 'playfair') {
+                result = playfairCipher(text, key, true);
+            }
+
+            document.getElementById('ciphertext').value = result;
         }
-    }
-    return binaryOutput.trim();
-}
 
-function convertWithEncoding(text, encoding) {
-    const table = encodingTables[encoding];
-    const bytes = [];
-    for (let c of text) {
-        const byte = table[c];
-        if (byte !== undefined) {
-            bytes.push(byte);
-        } else {
-            bytes.push('?'.charCodeAt(0)); // Используем '?' для неизвестных символов
+        function decrypt() {
+            const method = document.getElementById('decipherMethod').value;
+            const key = document.getElementById('dkey').value;
+            const text = document.getElementById('dciphertext').value;
+            let result = '';
+
+            if (method === 'gronsfeld') {
+                result = gronsfeldCipher(text, key, false);
+            } else if (method === 'trithemius') {
+                result = trithemiusCipher(text, false);
+            } else if (method === 'playfair') {
+                result = playfairCipher(text, key, false);
+            }
+
+            document.getElementById('dplaintext').value = result;
         }
-    }
-    const binaryOutput = bytes.map(b => {
-        return b.toString(2).padStart(8, '0');
-    }).join(' ');
-    return binaryOutput;
-}
-</script>
 
+        // Шифр Гронсфельда
+        function gronsfeldCipher(text, key, encrypt = true) {
+            const alphabet = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';
+            const fullKey = key.repeat(Math.ceil(text.length / key.length));
+            let result = '';
+
+            for (let i = 0; i < text.length; i++) {
+                const letter = text[i].toUpperCase();
+                const index = alphabet.indexOf(letter);
+
+                if (index !== -1) {
+                    const shift = parseInt(fullKey[i % fullKey.length]);
+                    let newIndex = encrypt ? index + shift : index - shift;
+                    newIndex = (newIndex + alphabet.length) % alphabet.length;
+                    result += alphabet[newIndex];
+                } else {
+                    result += letter;
+                }
+            }
+            return result;
+        }
+
+        // Шифр Трисемуса (Тритемиуса)
+        function trithemiusCipher(text, encrypt = true) {
+            const alphabet = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';
+            let result = '';
+            let shift = 0;
+
+            for (let i = 0; i < text.length; i++) {
+                const letter = text[i].toUpperCase();
+                const index = alphabet.indexOf(letter);
+
+                if (index !== -1) {
+                    let newIndex = encrypt ? index + shift : index - shift;
+                    newIndex = (newIndex + alphabet.length) % alphabet.length;
+                    result += alphabet[newIndex];
+                    shift++;
+                } else {
+                    result += letter;
+                }
+            }
+            return result;
+        }
+
+        // Шифр Плейфера
+        function playfairCipher(text, key, encrypt = true) {
+            const alphabet = 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЫЬЭЮЯ'; // Удалены Ё и Ъ
+            key = key.toUpperCase().replace(/Ё|Ъ/g, '');
+            let matrixKey = '';
+
+            // Убираем повторяющиеся буквы из ключа
+            for (let char of key) {
+                if (matrixKey.indexOf(char) === -1 && alphabet.indexOf(char) !== -1) {
+                    matrixKey += char;
+                }
+            }
+
+            // Добавляем остальные буквы
+            for (let char of alphabet) {
+                if (matrixKey.indexOf(char) === -1) {
+                    matrixKey += char;
+                }
+            }
+
+            // Создаем матрицу 5x6
+            const matrix = [];
+            for (let i = 0; i < 6; i++) {
+                matrix.push(matrixKey.slice(i * 5, i * 5 + 5).split(''));
+            }
+
+            // Подготовка текста
+            text = text.toUpperCase().replace(/Ё|Ъ/g, '').replace(/\s/g, '');
+            if (text.length % 2 !== 0) {
+                text += 'Ь';
+            }
+
+            let result = '';
+            for (let i = 0; i < text.length; i += 2) {
+                let a = text[i];
+                let b = text[i + 1];
+
+                if (a === b) {
+                    b = 'Ь';
+                    i--;
+                }
+
+                let posA = findPosition(matrix, a);
+                let posB = findPosition(matrix, b);
+
+                if (posA && posB) {
+                    if (posA.row === posB.row) {
+                        // Одна строка
+                        if (encrypt) {
+                            result += matrix[posA.row][(posA.col + 1) % 5];
+                            result += matrix[posB.row][(posB.col + 1) % 5];
+                        } else {
+                            result += matrix[posA.row][(posA.col + 4) % 5];
+                            result += matrix[posB.row][(posB.col + 4) % 5];
+                        }
+                    } else if (posA.col === posB.col) {
+                        // Один столбец
+                        if (encrypt) {
+                            result += matrix[(posA.row + 1) % 6][posA.col];
+                            result += matrix[(posB.row + 1) % 6][posB.col];
+                            } else {
+                            result += matrix[(posA.row + 5) % 6][posA.col];
+                            result += matrix[(posB.row + 5) % 6][posB.col];
+                        }
+                    } else {
+                        // Прямоугольник
+                        result += matrix[posA.row][posB.col];
+                        result += matrix[posB.row][posA.col];
+                    }
+                } else {
+                    result += a + b;
+                }
+            }
+            return result;
+        }
+
+        function findPosition(matrix, char) {
+            for (let row = 0; row < matrix.length; row++) {
+                for (let col = 0; col < matrix[row].length; col++) {
+                    if (matrix[row][col] === char) {
+                        return { row, col };
+                    }
+                }
+            }
+            return null;
+        }
+    </script>
 </body>
 </html>
