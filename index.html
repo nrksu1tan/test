@@ -1,4 +1,3 @@
-> XRD:
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -123,9 +122,7 @@
             } else if (method === 'trithemius') {
                 result = trithemiusCipher(text, false);
             } else if (method === 'playfair') {
-
-> XRD:
-result = playfairCipher(text, key, false);
+                result = playfairCipher(text, key, false);
             }
 
             document.getElementById('dplaintext').value = result;
@@ -235,9 +232,7 @@ result = playfairCipher(text, key, false);
                         if (encrypt) {
                             result += matrix[(posA.row + 1) % 6][posA.col];
                             result += matrix[(posB.row + 1) % 6][posB.col];
-
-> XRD:
-} else {
+                            } else {
                             result += matrix[(posA.row + 5) % 6][posA.col];
                             result += matrix[(posB.row + 5) % 6][posB.col];
                         }
